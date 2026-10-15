@@ -1,0 +1,33 @@
+services:
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      DATA_DIR: /data
+      # テスト用: DEMO_MODE=true PORT=3001 docker compose -p health-dashboard-demo up -d でデモデータの別インスタンスを起動
+      DEMO_MODE: ${DEMO_MODE:-}
+    volumes:
+      - backend-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  backend-data:
